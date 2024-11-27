@@ -1,0 +1,52 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+
+    - name: Updating cache
+      apt:
+        update_cache: yes
+
+    - name: Making Directory for image
+      file:
+        path: /home/avalencia/destination
+        state: directory
+        mode: '0755'
+
+    - name: Disable and stop Apache (Ubuntu)
+      service:
+        name: apache2
+        state: stopped
+        enabled: no
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Disable and stop Apache (CentOS)
+      service:
+        name: httpd
+        state: stopped
+        enabled: no
+      when: ansible_distribution == 'CentOS'
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: latest
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Copy files for HTML and Docker
+      copy:
+        src: /home/avalencia/Finals/for_HTML/.
+        dest: /home/avalencia/destination/
+        owner: avalencia
+        group: avalencia
+        mode: '0755'
+    - name: Build Docker Image
+      command: docker build -t testing /home/avalencia/destination/for_HTML
+      args:
+        chdir: /home/avalencia/destination/for_HTML
+
+    - name: Run Docker container
+      command: docker run -d --name testing -p 80:80 testing
+
+    - name: Check for running container
+      command: docker ps -a --filter "name=practice" --filter "status=running"
